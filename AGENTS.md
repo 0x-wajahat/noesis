@@ -4,26 +4,29 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project
 
-**noesis** — Python project. As of the initial commit, no source files, package manager config, or tooling have been set up yet.
+**noesis** is a Python 3 CLI (standard library only) that decides whether a coding agent has enough evidence about a codebase to safely make a requested change — before editing anything. It collects references, git history, intent-flagged commits, co-change patterns, test coverage, and bug/revert history, turns gaps into tracked "unknowns," and returns a verdict: `PROCEED`, `INVESTIGATE_MORE`, or `STOP_AND_ASK`. State is kept in `.noesis/ledger.json`.
 
-## Intended Tooling (inferred from `.gitignore`)
+## MANDATORY: Safety check before editing
 
-The `.gitignore` was generated with explicit entries for the following tools; prefer these when setting up the project:
+Every agent operating in this repo, in **any mode that can write files**, must follow the workflow defined in [`.bob/rules/noesis-check.md`](.bob/rules/noesis-check.md) before editing any file:
 
-- **Linter/formatter**: `ruff` (`.ruff_cache/` is ignored)
-- **Type checker**: `mypy` (`.mypy_cache/` is ignored)
-- **Test runner**: `pytest` (`.pytest_cache/` is ignored)
-- **Package manager**: `uv` is the primary candidate (`uv.lock` comment present); `poetry`, `pdm`, and `pixi` are also accounted for — pick one and commit to it
-- **Possible UI framework**: `marimo` or `streamlit` entries exist (`__marimo__/`, `.streamlit/secrets.toml`)
+- Run `python noesis.py check` **before** making any edit.
+- Run `python noesis.py drift` **after** any edit.
 
-## Commands (to be added once tooling is configured)
+This is not optional tooling — it is the actual subject of this repository. If `noesis.py` cannot be found or fails to run, **stop and tell the human**. Do not proceed on the assumption that "no tooling is configured yet."
 
-Until a `pyproject.toml` or equivalent is committed, there are no standard commands. Once set up, document them here, e.g.:
+## Commands
 
-```bash
-uv run pytest                        # run all tests
-uv run pytest tests/test_foo.py -k test_name   # run a single test
-uv run ruff check .                  # lint
-uv run ruff format .                 # format
-uv run mypy .                        # type check
+```
+# Assess whether a change is safe to make
+python noesis.py check --repo PATH --change "description of change" --target FILE[:SYMBOL]
+
+# Supply evidence to resolve an open unknown
+python noesis.py resolve <unknown_id> --evidence "what you found" --source "file:line or commit hash"
+
+# Register a risk the tool missed
+python noesis.py add-unknown --category "category" --severity critical|major|minor --text "description"
+
+# Detect edits outside the approved footprint
+python noesis.py drift --repo PATH
 ```
