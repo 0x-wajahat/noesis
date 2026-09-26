@@ -73,7 +73,7 @@ Bob IDE was used throughout: Plan mode to design `noesis.py` before implementati
 
 ## Team
 
-[AbdurRehman Danish
+AbdurRehman Danish
 Aarez Absar
 Izaan Ahmad
-Muhammad Wajahat]
+Muhammad Wajahat
