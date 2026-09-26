@@ -3,7 +3,7 @@
 An AI safety layer for coding agents that knows when to stop and investigate instead of guessing.
 
 ## Related repository
-The sandbox codebase used to build and validate Noesis is here: **https://github.com/<yourusername>/test-noesis**
+The sandbox codebase used to build and validate Noesis is here: **https://github.com/0x-wajahat/test-noesis.git**
 It contains deliberately planted "traps" (hidden dependencies, config-driven calls, commit history explaining non-obvious code) that Noesis is tested against.
 
 ## Problem
@@ -73,4 +73,7 @@ Bob IDE was used throughout: Plan mode to design `noesis.py` before implementati
 
 ## Team
 
-[Add your 4 names and roles here]
+[AbdurRehman Danish
+Aarez Absar
+Izaan Ahmad
+Muhammad Wajahat]
