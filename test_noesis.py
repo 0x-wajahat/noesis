@@ -261,6 +261,47 @@ def test_drift_detected(tmp_path):
     assert "other.py" in result.stdout
 
 
+# ---------------------------------------------------------------------------
+# Deduplication: resolved unknowns must not be recreated
+# ---------------------------------------------------------------------------
+
+def test_no_duplicate_after_resolved_critical(tmp_path):
+    """Re-running check after a critical is RESOLVED must not create a duplicate."""
+    repo = make_repo(tmp_path, {
+        "auth.py": "pass\n",
+    })
+    # Commit with an intent keyword so generate_unknowns creates an intent/critical
+    add_commit(repo, {"auth.py": "# hardened\npass\n"}, "security: harden auth check")
+
+    history = noesis.collect_history(repo, "auth.py")
+    intent_commits = noesis.collect_intent(history)
+    assert len(intent_commits) >= 1, "precondition: at least one intent commit expected"
+
+    # First run — ledger is empty, so the intent unknown is created
+    ledger = {"unknowns": [], "footprint": [], "next_id": 1}
+    noesis.generate_unknowns(ledger, "auth.py", [], intent_commits, [], [], {"count": 0, "commits": []}, history)
+    intent_unknowns = [u for u in ledger["unknowns"] if u["category"] == "intent" and u["target_file"] == "auth.py"]
+    assert len(intent_unknowns) == 1
+    uid = intent_unknowns[0]["id"]
+
+    # Resolve it (simulate two evidence entries with different types)
+    intent_unknowns[0]["evidence"] = [
+        {"text": "read code", "source": "auth.py:1", "type": "code"},
+        {"text": "read commit", "source": "a1b2c3d", "type": "history"},
+    ]
+    intent_unknowns[0]["status"] = "resolved"
+
+    # Second run — same collectors, same ledger (now with the resolved unknown)
+    noesis.generate_unknowns(ledger, "auth.py", [], intent_commits, [], [], {"count": 0, "commits": []}, history)
+
+    all_intent = [u for u in ledger["unknowns"] if u["category"] == "intent" and u["target_file"] == "auth.py"]
+    # Must still be exactly one — no duplicate created
+    assert len(all_intent) == 1, f"expected 1 intent unknown, got {len(all_intent)}"
+    # The original resolved one must still be RESOLVED
+    assert all_intent[0]["id"] == uid
+    assert all_intent[0]["status"] == "resolved"
+
+
 def test_no_drift(tmp_path):
     """No changes outside footprint -> NO DRIFT, exit 0."""
     repo = make_repo(tmp_path, {"tracked.py": "x = 1\n"})

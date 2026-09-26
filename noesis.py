@@ -170,8 +170,9 @@ def collect_riskhist(history: list) -> dict:
 
 # -- Unknown generation ------------------------------------------------------
 def _unknown_exists(ledger: dict, category: str, target_file: str) -> bool:
+    """Return True if ANY unknown (any status) matches the category+target_file pair."""
     return any(
-        u["status"] == "open" and u["category"] == category and u.get("target_file") == target_file
+        u["category"] == category and u.get("target_file") == target_file
         for u in ledger["unknowns"]
     )
 
@@ -197,43 +198,29 @@ def generate_unknowns(ledger, target_file, refs, intent_commits, cochange_files,
         if ref["type"] == "indirect":
             src = ref["source"]
             cat = "hidden_caller"
-            if not any(
-                u["status"] == "open" and u["category"] == cat and u.get("target_file") == target_file
-                and src in u["next_steps"]
-                for u in ledger["unknowns"]
-            ):
-                if not _unknown_exists(ledger, cat, target_file):
-                    _add_unknown(
-                        ledger, cat, "critical",
-                        f"Check {src} to see how it's called and whether removing/changing the symbol breaks it.",
-                        target_file,
-                    )
+            if not _unknown_exists(ledger, cat, target_file):
+                _add_unknown(
+                    ledger, cat, "critical",
+                    f"Check {src} to see how it's called and whether removing/changing the symbol breaks it.",
+                    target_file,
+                )
 
     # 2. intent-flagged commits -> intent / critical
     for commit in intent_commits:
         h = commit["hash"]
         cat = "intent"
-        if not any(
-            u["status"] == "open" and u["category"] == cat and u.get("target_file") == target_file
-            and h in u["next_steps"]
-            for u in ledger["unknowns"]
-        ):
-            if not _unknown_exists(ledger, cat, target_file):
-                _add_unknown(
-                    ledger, cat, "critical",
-                    f"Read commit {h} in full and the surrounding code to understand why it's written this way.",
-                    target_file,
-                )
+        if not _unknown_exists(ledger, cat, target_file):
+            _add_unknown(
+                ledger, cat, "critical",
+                f"Read commit {h} in full and the surrounding code to understand why it's written this way.",
+                target_file,
+            )
 
     # 3. cochange files -> coupling / major
     for item in cochange_files:
         f = item["file"]
         cat = "coupling"
-        if not any(
-            u["status"] == "open" and u["category"] == cat and u.get("target_file") == target_file
-            and f in u["next_steps"]
-            for u in ledger["unknowns"]
-        ):
+        if not _unknown_exists(ledger, cat, target_file):
             ledger["unknowns"].append({
                 "id": next_unknown_id(ledger),
                 "category": cat,
